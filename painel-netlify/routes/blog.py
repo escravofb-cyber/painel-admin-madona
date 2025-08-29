@@ -1,57 +1,61 @@
 from flask import Blueprint, request, jsonify
 from models.blog import Blog, db
+from app import trigger_netlify_build # <--- LINHA ADICIONADA
 
-blog_bp = Blueprint('blog', __name__)
+blog_bp = Blueprint("blog", __name__)
 
-@blog_bp.route('/blogs', methods=['GET'])
+@blog_bp.route("/blogs", methods=["GET"])
 def get_blogs():
     blogs = Blog.query.order_by(Blog.created_at.desc()).all()
     return jsonify([blog.to_dict() for blog in blogs])
 
-@blog_bp.route('/blogs', methods=['POST'])
+@blog_bp.route("/blogs", methods=["POST"])
 def create_blog():
     data = request.get_json()
     
-    if not data or not data.get('title') or not data.get('content'):
-        return jsonify({'error': 'Título e conteúdo são obrigatórios'}), 400
+    if not data or not data.get("title") or not data.get("content"):
+        return jsonify({"error": "Título e conteúdo são obrigatórios"}), 400
     
     blog = Blog(
-        title=data['title'],
-        content=data['content']
+        title=data["title"],
+        content=data["content"]
     )
     
     db.session.add(blog)
     db.session.commit()
     
+    trigger_netlify_build() # <--- LINHA ADICIONADA
     return jsonify(blog.to_dict()), 201
 
-@blog_bp.route('/blogs/<int:blog_id>', methods=['GET'])
+@blog_bp.route("/blogs/<int:blog_id>", methods=["GET"])
 def get_blog(blog_id):
     blog = Blog.query.get_or_404(blog_id)
     return jsonify(blog.to_dict())
 
-@blog_bp.route('/blogs/<int:blog_id>', methods=['PUT'])
+@blog_bp.route("/blogs/<int:blog_id>", methods=["PUT"])
 def update_blog(blog_id):
     blog = Blog.query.get_or_404(blog_id)
     data = request.get_json()
     
     if not data:
-        return jsonify({'error': 'Dados não fornecidos'}), 400
+        return jsonify({"error": "Dados não fornecidos"}), 400
     
-    if 'title' in data:
-        blog.title = data['title']
-    if 'content' in data:
-        blog.content = data['content']
+    if "title" in data:
+        blog.title = data["title"]
+    if "content" in data:
+        blog.content = data["content"]
     
     db.session.commit()
     
+    trigger_netlify_build() # <--- LINHA ADICIONADA
     return jsonify(blog.to_dict())
 
-@blog_bp.route('/blogs/<int:blog_id>', methods=['DELETE'])
+@blog_bp.route("/blogs/<int:blog_id>", methods=["DELETE"])
 def delete_blog(blog_id):
     blog = Blog.query.get_or_404(blog_id)
     db.session.delete(blog)
     db.session.commit()
     
-    return '', 204
+    trigger_netlify_build() # <--- LINHA ADICIONADA
+    return "", 204
 
